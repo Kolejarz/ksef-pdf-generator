@@ -10,7 +10,7 @@ vi.mock('./generators/FA1/DodatkoweInformacje', () => ({
   generateDodatkoweInformacje: vi.fn(() => ({ example: 'dodatkowe' })),
 }));
 vi.mock('./generators/FA1/Platnosc', () => ({ generatePlatnosc: vi.fn(() => ({ example: 'platnosc' })) }));
-vi.mock('./generators/FA1/Podmioty', () => ({ generatePodmioty: vi.fn(() => [{ example: 'podmioty' }]) }));
+vi.mock('./generators/FA1/Podmioty', () => ({ generatePodmioty: vi.fn(() => [{ text: 'Sprzedawca' }]) }));
 vi.mock('./generators/FA1/PodsumowanieStawekPodatkuVat', () => ({
   generatePodsumowanieStawekPodatkuVat: vi.fn(() => ({ example: 'podsumowanie' })),
 }));
@@ -90,5 +90,22 @@ describe('generateFA1', () => {
 
     expect(createPdfSpy).toHaveBeenCalled();
     expect(result).toBe(mockCreatePdfReturn);
+  });
+
+  it('translates invoice labels to English before pdf generation', () => {
+    const invoice: Faktura = {
+      Fa: { RodzajFaktury: { _text: 'VAT' }, Zamowienie: {}, P_15: { _text: '15' }, KodWaluty: { _text: 'PLN' } },
+      Stopka: {},
+      Naglowek: {},
+    } as any;
+
+    const additionalData: AdditionalDataTypes = { nrKSeF: 'nrKSeF' };
+
+    const createPdfSpy = vi.spyOn(pdfMake, 'createPdf').mockReturnValue(mockCreatePdfReturn as any);
+
+    generateFA1(invoice, additionalData);
+
+    const docDefinition = createPdfSpy.mock.calls[0][0] as any;
+    expect(docDefinition.content).toEqual(expect.arrayContaining([expect.objectContaining({ text: 'Seller' })]));
   });
 });
